@@ -4,8 +4,10 @@ import can
 import struct
 import serial
 import serial.tools.list_ports
-
+\
 CAN_MESSAGE_ID_SEND = 0x0D1
+CAN_SEND_PRECHARGE = 0x008
+
 
 class OUR_Monitor:
     def __init__(self, voltages, temperatures):
@@ -54,7 +56,7 @@ class OUR_Monitor:
         self.input_entry.pack(side=tk.LEFT)
 
         # Add a button to send the value via a CAN message
-        self.send_button = tk.Button(self.input_frame, text="Send", command=self.send_DCL)
+        self.send_button = tk.Button(self.input_frame, text="Send", command=self.precharge_toggle)
         self.send_button.pack(side=tk.LEFT)
 
         # Create a button to connect to the CANadapter
@@ -165,9 +167,26 @@ class OUR_Monitor:
             # Send the value via a CAN message (replace with actual code)
             print(f"Sending value: {value}")
             struct.pack()
-            msg = can.Message(arbitration_id=CAN_MESSAGE_ID_SEND,data=[],dlc=2)
-            self.CANbus.send()
-
+            msg = can.Message(arbitration_id=CAN_MESSAGE_ID_SEND,data=[],dlc=1)
+            self.CANbus.send(msg)
+    
+    def precharge_toggle(self):
+        if self.CANbus:
+            value = self.input_entry.get()
+            
+            msgToSend = [0,0,0,0,0,0,0,0]
+            
+            if value > 1:
+                msgToSend[0] = 1
+                
+            print(msgToSend)
+            self.send_can_message(self, CAN_SEND_PRECHARGE, msgToSend, 1)
+            
+    
+    def send_can_message (self, msgID, msgData,msgDlc):
+        msg = can.Message(arbitration_id=msgID, data=bytearray(msgData), dlc=msgDlc)
+        self.CANbus.send()
+    
     def update(self, list1, list2):
         # Clear the existing values in the listbox widgets
         for i in range(9):
